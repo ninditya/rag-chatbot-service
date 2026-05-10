@@ -1,6 +1,8 @@
 import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from RagWorkflow import RagWorkflow
+from DocumentStore import DocumentStore
 
 class QuestionRequest(BaseModel):
     question: str
@@ -8,7 +10,7 @@ class QuestionRequest(BaseModel):
 class DocumentRequest(BaseModel):
     text: str
 
-def create_router(rag_workflow, document_store):
+def create_router(rag_workflow: RagWorkflow, document_store: DocumentStore) -> APIRouter:
     router = APIRouter()
 
     @router.post("/ask")
@@ -20,7 +22,7 @@ def create_router(rag_workflow, document_store):
                 "question": req.question,
                 "answer": result["answer"],
                 "context_used": result.get("context", []),
-                "latency_sec": round(time.time() - start, 3)
+                "latency_sec": round(time.time() - start, 3),
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -36,9 +38,8 @@ def create_router(rag_workflow, document_store):
     @router.get("/status")
     def status():
         return {
-            "qdrant_ready": document_store.use_qdrant,
-            "in_memory_docs_count": len(document_store.docs_memory),
-            "graph_ready": rag_workflow.chain is not None
+            **document_store.get_status(),
+            "graph_ready": rag_workflow.is_ready,
         }
 
     return router

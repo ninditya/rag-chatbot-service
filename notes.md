@@ -1,40 +1,13 @@
+# Design Notes — RAG Service Refactor
 
-# Notes — Simple RAG Refactor
+## Main Design Decisions
 
-## Overview
+The original `main.py` mixed HTTP routing, document storage, embedding generation, and the LangGraph workflow into a single file with global state. The refactor splits these into four focused classes: `EmbeddingService`, `DocumentStore`, `RagWorkflow`, and a `Routes` factory — each with a single clear responsibility. Dependencies are passed explicitly through constructors rather than shared via globals, making it straightforward to swap any component (e.g., replace the fake embedder with a real model) without touching the rest.
 
-Refactor ini mengubah simple RAG dari satu file menjadi desain berbasis **OOP**. Tujuannya membuat kode lebih terstruktur tanpa mengubah perilaku sistem secara fungsional.
+## Trade-off Considered
 
-## Design Decisions
+Splitting into multiple files adds a small navigation overhead for a project this size — a single well-organised file could feel simpler for a demo. The multi-file structure was chosen anyway because it mirrors how the service would grow in practice: a real embedding model, a persistent Qdrant setup, or additional workflow nodes can each be changed in isolation without risk of breaking the other layers. The upfront cost is low; the long-term maintenance benefit compounds quickly.
 
-* **OOP-based Components**
+## How This Improves Maintainability
 
-  * `EmbeddingService`: generate embedding sederhana
-  * `DocumentStore`: simpan & cari dokumen (Qdrant / in-memory fallback)
-  * `RagWorkflow`: alur retrieve → answer
-  * `Routes`: endpoint API (`/add`, `/ask`, `/status`)
-* **Clear Responsibility**
-
-  * Setiap class fokus pada satu tugas.
-  * Mengurangi campur aduk logika API, storage, dan workflow yang sebelumnya ada di satu file.
-
-## Trade-off
-
-* **Lebih Banyak File**
-
-  * Untuk demo kecil, satu file lebih cepat dipahami.
-  * Namun pendekatan OOP dipilih karena alur tetap sama, tapi kode lebih rapi dan siap berkembang (misalnya ganti embedding dummy dengan model nyata).
-
-## Maintainability
-
-* **Isolated Changes**
-
-  * Perubahan pada satu class tidak berdampak ke bagian lain.
-* **Easier Testing**
-
-  * Tiap komponen bisa diuji terpisah tanpa menjalankan full API.
-* **Closer to Production Pattern**
-
-  * Struktur lebih mendekati praktik umum pada implementasi RAG di dunia nyata.
-
----
+Because each component owns its own state and exposes a narrow interface (`embed`, `add_document`/`search`/`get_status`, `ask`/`is_ready`), changes stay local and tests can target individual units without standing up the full API. The `DocumentStore` initialises Qdrant safely on startup — preserving existing data instead of recreating the collection — and seeds auto-incrementing IDs from the live collection count, fixing the unsafe `len(docs_memory)` ID from the original. The `/status` endpoint now calls `get_status()` and `is_ready` on the respective objects rather than reaching into their internals, keeping encapsulation intact.

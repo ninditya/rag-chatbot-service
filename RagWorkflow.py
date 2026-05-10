@@ -3,20 +3,15 @@ from langgraph.graph import StateGraph, END
 class RagWorkflow:
     def __init__(self, document_store):
         self.document_store = document_store
-        self.chain = self._build_graph()
+        self._chain = self._build_graph()
 
     def _retrieve(self, state: dict) -> dict:
-        question = state["question"]
-        context = self.document_store.search(question)
-        state["context"] = context
+        state["context"] = self.document_store.search(state["question"])
         return state
 
     def _answer(self, state: dict) -> dict:
         context = state.get("context", [])
-        if context:
-            state["answer"] = f"I found this: '{context[0][:100]}...'"
-        else:
-            state["answer"] = "Sorry, I don't know."
+        state["answer"] = f"I found this: '{context[0][:100]}...'" if context else "Sorry, I don't know."
         return state
 
     def _build_graph(self):
@@ -29,4 +24,8 @@ class RagWorkflow:
         return workflow.compile()
 
     def ask(self, question: str) -> dict:
-        return self.chain.invoke({"question": question})
+        return self._chain.invoke({"question": question})
+
+    @property
+    def is_ready(self) -> bool:
+        return self._chain is not None
