@@ -1,78 +1,138 @@
-🧩 Code Quality Exercise 
+# RAG Chatbot Service
 
-For Associate Software Engineer Candidates 
+A lightweight Retrieval-Augmented Generation (RAG) chatbot API built with FastAPI, LangGraph, and Qdrant. The service allows you to add documents to a knowledge base and query them through a natural-language question endpoint.
 
-Thank you for your interest in joining our team! As part of our technical evaluation, we invite you to review and refactor the small Python application in this repository. 
+---
 
-This exercise is designed to assess your understanding of code structure, maintainability, and software design fundamentals—not just whether the code runs. 
+## Tech Stack
 
-📌 The Task 
+| Layer | Library |
+|---|---|
+| API Framework | FastAPI + Uvicorn |
+| Workflow Orchestration | LangGraph |
+| Vector Store | Qdrant (falls back to in-memory if unavailable) |
+| Embedding | Deterministic hash-based embedding (128-dim) |
 
-We’ve provided a working but intentionally unstructured implementation of a simple RAG (Retrieval-Augmented Generation) service using: 
+---
 
-    FastAPI  
-    LangGraph  
-    Qdrant (with in-memory fallback)
-     
+## Project Structure
 
-Your goal:
-Refactor the code into a cleaner, more maintainable, and production-suitable structure using object-oriented principles and good software engineering practices. 
+```
+.
+├── main.py             # App entry point — wires dependencies together
+├── EmbeddingService.py # Converts text to fixed-size vectors
+├── DocumentStore.py    # Manages document storage in Qdrant or in-memory
+├── RagWorkflow.py      # LangGraph pipeline: retrieve → answer
+└── Routes.py           # FastAPI router with /add, /ask, /status endpoints
+```
 
-You are not expected to add new features, only to improve the internal design while preserving existing behavior. 
- 
-📁 What’s Included 
+Each file maps to a single responsibility, making the codebase easy to extend or test in isolation.
 
-    main.py: A single-file implementation that works but contains common anti-patterns (e.g., global state, tight coupling, lack of separation of concerns).
-    This README.md: Instructions and context.
- 
-✅ What We’re Looking For 
+---
 
-We want to see how you think about code quality. In your refactored version, prioritize: 
+## How It Works
 
-    Encapsulation: Group related data and behavior together.
-    Separation of concerns: Split web logic, business logic, and data access.
-    Explicit dependencies: Avoid global variables; pass what you need.
-    Testability: Structure code so units can be validated in isolation.
-    Readability: Clear naming, logical structure, minimal surprise.
-     
+1. **Add documents** — `POST /add` stores a piece of text as a vector in Qdrant (or in-memory fallback).
+2. **Ask a question** — `POST /ask` embeds the question, retrieves the most relevant documents, and returns an answer synthesized from the top result.
+3. **Check status** — `GET /status` reports the storage backend in use and the workflow readiness.
 
-    💡 You don’t need to implement unit tests—but design the code so they could be added easily. 
-     
-🛠 How to Approach This 
+```
+User question
+     │
+     ▼
+EmbeddingService.embed()
+     │
+     ▼
+DocumentStore.search()  ←── Qdrant / in-memory
+     │
+     ▼
+RagWorkflow (LangGraph)
+  retrieve → answer
+     │
+     ▼
+API response
+```
 
-    Understand the current behavior
-    Run the app, try the endpoints (/add, /ask), and confirm you know what it does. 
+---
 
-    Identify key responsibilities   
-        Handling HTTP requests  
-        Managing document storage (Qdrant or fallback)  
-        Generating fake embeddings  
-        Executing the retrieval → answer workflow
+## Setup
 
-    Redesign around these responsibilities
-    Consider creating classes like: 
-        EmbeddingService
-        DocumentStore
-        RagWorkflow
-        API router or controller
+### Prerequisites
 
-    Refactor incrementally
-    Keep the same external API—only change the internal structure. 
+- Python 3.11+
+- (Optional) Qdrant running locally on port 6333
 
- 
-📤 Submission Guidelines 
+### Install dependencies
 
-Please provide: 
-    A refactored version of the code (you may split into multiple files)
-    A short notes.md (1–3 paragraphs) explaining:
-        Your main design decisions
-        One trade-off you considered
-        How your version improves maintainability
-         
+```bash
+python -m venv env
+source env/bin/activate
+pip install fastapi uvicorn langgraph qdrant-client
+```
 
-Submit via github repo with public link.
- 
+### Run the server
 
-Note: This is not a test of your knowledge of LangGraph or Qdrant—we’re evaluating how you organize code, manage dependencies, and apply basic OOP principles in a realistic context. 
-     
-Good luck—and we look forward to seeing your approach! 
+```bash
+uvicorn main:app --reload
+```
+
+The API will be available at `http://localhost:8000`. Interactive docs are at `http://localhost:8000/docs`.
+
+---
+
+## API Endpoints
+
+### `POST /add`
+Add a document to the knowledge base.
+
+**Request body:**
+```json
+{ "text": "LangGraph is a framework for building stateful LLM workflows." }
+```
+
+**Response:**
+```json
+{ "id": 0, "status": "added" }
+```
+
+---
+
+### `POST /ask`
+Ask a question against the stored documents.
+
+**Request body:**
+```json
+{ "question": "What is LangGraph?" }
+```
+
+**Response:**
+```json
+{
+  "question": "What is LangGraph?",
+  "answer": "I found this: 'LangGraph is a framework for building stateful LLM workflows....'",
+  "context_used": ["LangGraph is a framework for building stateful LLM workflows."],
+  "latency_sec": 0.012
+}
+```
+
+---
+
+### `GET /status`
+Check the current state of the service.
+
+**Response:**
+```json
+{
+  "qdrant_ready": true,
+  "in_memory_docs_count": 0,
+  "graph_ready": true
+}
+```
+
+---
+
+## Notes
+
+- **Qdrant fallback** — if Qdrant is not reachable on startup, the service automatically falls back to an in-memory list with basic keyword search. Data in fallback mode does not persist across restarts.
+- **Embedding** — the current `EmbeddingService` uses a deterministic hash-based approach (no external model required). It can be swapped for a real embedding model (e.g. OpenAI, sentence-transformers) by implementing the same `embed(text)` interface.
+- **LangGraph graph** — the workflow is a two-node graph (`retrieve → answer`). Additional nodes (e.g. reranking, query rewriting) can be added to the graph in `RagWorkflow._build_graph()` without touching the rest of the codebase.
