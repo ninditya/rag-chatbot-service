@@ -16,3 +16,6 @@ venv/
 # Logs
 *.log
 
+# Environment variables — jangan pernah commit file ini
+.env
+
