@@ -2,7 +2,7 @@ fastapi==0.128.0
 uvicorn==0.40.0
 langgraph==1.0.5
 pydantic==2.12.5
-qdrant-client==1.16.2
+qdrant-client==1.18.0
 google-genai==2.4.0
 python-dotenv==1.2.2
 streamlit==1.45.1
