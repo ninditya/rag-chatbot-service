@@ -1,29 +1,48 @@
 """
-Seed script untuk menambahkan entri knowledge base baru ke RAG HerbalCheck.
-Jalankan: python seed_knowledge_base.py
-Pastikan server berjalan di http://localhost:8000 atau sesuaikan BASE_URL.
+Seed script untuk HealthTruth-AI knowledge base.
+Jalankan:
+  python seed_knowledge_base.py                          # lokal (localhost:8000)
+  python seed_knowledge_base.py https://xxx.railway.app  # Railway
 
-Topik yang dicakup (BARU — tidak menduplikasi entri yang sudah ada):
+Topik (35 entri):
+  Batch 1 — Herbal & mekanisme (20 entri):
   1.  Temulawak & hepatoprotektif hati
-  2.  Sambiloto / Andrographis — anti-inflamasi (mekanisme)
+  2.  Sambiloto — anti-inflamasi (mekanisme)
   3.  Sambiloto — imunomodulator & batasan klinis
   4.  Jamu pahitan & diabetes (in-vitro)
-  5.  Jamu pahitan — risiko pemalsuan & bahan kimia obat (BKO)
-  6.  Obat herbal & hepatotoksisitas (risiko organ)
-  7.  Obat herbal & nefrotoksisitas (kerusakan ginjal)
+  5.  Jamu pahitan — risiko pemalsuan & BKO
+  6.  Obat herbal & hepatotoksisitas
+  7.  Obat herbal & nefrotoksisitas
   8.  Daun kelor — kandungan gizi & bukti ilmiah
-  9.  Daun kelor — intervensi stunting di Indonesia
+  9.  Daun kelor — intervensi stunting
  10.  Propolis — antibakteri & antiviral
- 11.  Propolis Indonesia — penelitian spesifik lokal
- 12.  Temu ireng (Curcuma aeruginosa) — bukti farmakologi
- 13.  Temu ireng — aktivitas antioksidan & imunostimulan
- 14.  Klaim herbal anti-kanker Indonesia — status bukti
+ 11.  Propolis Indonesia — penelitian lokal
+ 12.  Temu ireng — bukti farmakologi
+ 13.  Temu ireng — antioksidan & imunostimulan
+ 14.  Klaim herbal anti-kanker — status bukti
  15.  Herbal anti-kanker — risiko penghentian terapi konvensional
  16.  Interaksi herbal–warfarin — risiko perdarahan
- 17.  Interaksi herbal–antikoagulan — mekanisme farmakokinetik
- 18.  Swamedikasi jamu — prevalensi & risiko di Indonesia
+ 17.  Interaksi herbal–antikoagulan — farmakokinetik
+ 18.  Swamedikasi jamu — prevalensi & risiko
  19.  Swamedikasi jamu — penundaan pengobatan medis
- 20.  Temulawak — studi klinis pada manusia & profil keamanan
+ 20.  Temulawak — studi klinis & profil keamanan
+
+  Batch 2 — Personalisasi profil kesehatan (15 entri):
+ 21.  Hipertensi & herbal — interaksi antihipertensi
+ 22.  Kolesterol tinggi, statin & herbal — interaksi CYP3A4
+ 23.  Asam urat & herbal — bukti ilmiah
+ 24.  Hamil/menyusui & herbal — kontraindikasi
+ 25.  Asma & herbal — risiko produk lebah
+ 26.  Jahe — profil keamanan & interaksi obat
+ 27.  Kunyit (Curcuma longa) — manfaat, keterbatasan & interaksi
+ 28.  Kayu manis — diabetes, kolesterol & risiko coumarin
+ 29.  Insulin & herbal — risiko hipoglikemia
+ 30.  Amlodipin & herbal — interaksi CYP3A4
+ 31.  Simvastatin & herbal — risiko miopati & rhabdomyolisis
+ 32.  Antidepresan & herbal — risiko sindrom serotonin
+ 33.  Obat tiroid & herbal — gangguan penyerapan
+ 34.  Aspirin dosis rendah & herbal — risiko perdarahan ganda
+ 35.  Obesitas & herbal pelangsing — bukti & risiko
 """
 
 import sys
@@ -350,6 +369,215 @@ KNOWLEDGE_ENTRIES = [
         "KESIMPULAN: Temulawak aman dikonsumsi pada dosis wajar sesuai aturan pakai; namun "
         "penggunaan berlebihan (megadosis) dan jangka sangat panjang tetap memerlukan pemantauan "
         "fungsi hati, terutama bagi pasien dengan penyakit hati yang sudah ada sebelumnya."
+    ),
+
+    # ─── 21. HIPERTENSI & HERBAL ───────────────────────────────────────────────
+    (
+        "HIPERTENSI DAN HERBAL — BUKTI DAN RISIKO INTERAKSI: Beberapa tanaman herbal memiliki "
+        "efek menurunkan tekanan darah yang telah diteliti secara ilmiah. Bawang putih (Allium sativum) "
+        "dalam meta-analisis Cochrane (2012) menunjukkan penurunan sistolik rata-rata 4.6 mmHg pada "
+        "pasien hipertensi ringan. Seledri (Apium graveolens) mengandung phthalide yang diduga bekerja "
+        "sebagai vasodilator, namun uji klinis pada manusia masih terbatas. "
+        "RISIKO INTERAKSI: Pasien yang sudah mengonsumsi obat antihipertensi seperti Amlodipin, "
+        "Lisinopril, atau Valsartan berisiko mengalami hipotensi jika menambahkan herbal antihipertensi "
+        "secara bersamaan. Gejala: pusing, pingsan, lemas mendadak. IDI dan BPOM menekankan bahwa "
+        "herbal TIDAK boleh menggantikan obat antihipertensi resep tanpa supervisi dokter. "
+        "Sumber: Cochrane Database 2012, Jurnal Hipertensi Indonesia."
+    ),
+
+    # ─── 22. KOLESTEROL TINGGI & STATIN ───────────────────────────────────────
+    (
+        "KOLESTEROL TINGGI, STATIN, DAN HERBAL — INTERAKSI DAN RISIKO: Simvastatin dan statin "
+        "lainnya dimetabolisme terutama melalui enzim CYP3A4 di hati. Red yeast rice (angkak) "
+        "mengandung monacolin K yang identik secara kimia dengan lovastatin. Mengonsumsi red yeast rice "
+        "bersamaan dengan simvastatin dapat menyebabkan double dosing tidak disengaja, meningkatkan "
+        "risiko miopati dan rhabdomyolysis (kerusakan otot serius). Studi di Journal of Clinical "
+        "Lipidology (2010) mengonfirmasi risiko ini. Bawang putih dosis tinggi dapat sedikit menurunkan "
+        "kolesterol LDL (rata-rata 5-10%), namun tidak cukup kuat untuk menggantikan statin pada pasien "
+        "dengan risiko kardiovaskular tinggi. KESIMPULAN: Pasien statin WAJIB menghindari suplemen red "
+        "yeast rice. Sumber: Journal of Clinical Lipidology 2010, BPOM RI."
+    ),
+
+    # ─── 23. ASAM URAT ────────────────────────────────────────────────────────
+    (
+        "ASAM URAT (HIPERURISEMIA) DAN HERBAL — BUKTI ILMIAH DAN RISIKO: Asam urat terjadi akibat "
+        "penumpukan kristal monosodium urat di sendi. Tempuyung (Sonchus arvensis) secara tradisional "
+        "digunakan untuk hiperurisemia; uji praklinis menunjukkan aktivitas xantin oksidase inhibitor "
+        "lemah. Daun sirsak sering diklaim menurunkan asam urat, namun penelitian klinis berkualitas "
+        "tinggi pada manusia masih sangat terbatas. PERINGATAN: Beberapa jamu pahitan dan ekstrak "
+        "herbal dapat meningkatkan kadar asam urat pada individu tertentu. Pasien asam urat yang "
+        "mengonsumsi allopurinol atau febuxostat harus berhati-hati karena interaksi herbal dapat "
+        "memengaruhi efektivitas obat tersebut. "
+        "Sumber: Jurnal Farmakologi Indonesia, Penelitian Etnobotani Universitas Gadjah Mada."
+    ),
+
+    # ─── 24. HAMIL/MENYUSUI ───────────────────────────────────────────────────
+    (
+        "HERBAL DAN KEHAMILAN/MENYUSUI — KONTRAINDIKASI DAN PANDUAN AMAN: Penggunaan herbal selama "
+        "kehamilan dan menyusui memerlukan kehati-hatian ekstra karena potensi dampak pada janin atau "
+        "bayi. HERBAL YANG DIKONTRAINDIKASIKAN SAAT HAMIL: (1) Sambiloto — studi praklinis menunjukkan "
+        "efek abortifasien dan teratogenik pada hewan; pantang dikonsumsi selama kehamilan. "
+        "(2) Kayu manis dosis tinggi — dapat merangsang kontraksi uterus. (3) Jamu pahitan dan jamu "
+        "pelancar haid — mengandung senyawa yang dapat memicu kontraksi. "
+        "HERBAL YANG RELATIF AMAN DALAM DOSIS RENDAH: Jahe dalam dosis rendah (≤1 gram/hari) telah "
+        "diteliti untuk mual kehamilan dan dinilai relatif aman oleh beberapa panduan medis. "
+        "SELAMA MENYUSUI: Beberapa senyawa herbal dapat masuk ke ASI. IDI merekomendasikan konsultasi "
+        "dokter sebelum konsumsi herbal apapun selama hamil dan menyusui. "
+        "Sumber: WHO Traditional Medicine Guidelines, IDI, Jurnal Obstetri Indonesia."
+    ),
+
+    # ─── 25. ASMA ─────────────────────────────────────────────────────────────
+    (
+        "ASMA DAN HERBAL — POTENSI MANFAAT DAN RISIKO: Asma adalah penyakit inflamasi kronik saluran "
+        "napas. Madu telah diteliti dalam beberapa studi kecil untuk gejala batuk terkait asma, namun "
+        "buktinya lemah dan tidak dapat menggantikan bronkodilator atau kortikosteroid inhalasi. "
+        "RISIKO: Propolis dan produk lebah lainnya (madu, bee pollen) dapat memicu reaksi alergi berat "
+        "(anafilaksis) pada pasien asma yang sensitif terhadap produk lebah — ini adalah kontraindikasi "
+        "penting. Asap dari membakar herbal (termasuk kemenyan, dupa) dapat memperparah bronkospasme. "
+        "Beberapa minyak esensial herbal (eucalyptus, peppermint) dapat memicu bronkospasme pada "
+        "sebagian pasien asma sensitif. KESIMPULAN: Pasien asma harus sangat berhati-hati dengan "
+        "produk berbasis lebah dan herbal yang dihirup. Pengobatan asma konvensional tidak boleh "
+        "dihentikan. Sumber: Global Initiative for Asthma (GINA), Jurnal Alergi Imunologi Indonesia."
+    ),
+
+    # ─── 26. JAHE ─────────────────────────────────────────────────────────────
+    (
+        "JAHE (Zingiber officinale) — PROFIL KEAMANAN DAN INTERAKSI OBAT: Jahe merupakan rempah "
+        "dengan aktivitas anti-inflamasi, antiemetik, dan antioksidan yang didukung bukti ilmiah. "
+        "Senyawa aktif utama: gingerol dan shogaol. MANFAAT TERBUKTI: Meta-analisis di British Journal "
+        "of Anaesthesia (2014) mengonfirmasi efektivitas jahe untuk mual pascaoperasi dan morning "
+        "sickness. INTERAKSI OBAT: (1) Antikoagulan (warfarin, aspirin): jahe memiliki sifat "
+        "antiplatelet lemah; penggunaan bersamaan dapat meningkatkan risiko perdarahan. (2) Obat "
+        "diabetes (metformin, insulin): jahe dapat menurunkan kadar gula darah; risiko hipoglikemia "
+        "jika dikombinasikan. (3) Obat antihipertensi: efek aditif penurunan tekanan darah. "
+        "KONTRAINDIKASI: Pasien dengan alergi jahe harus menghindari sepenuhnya. "
+        "KEAMANAN IBU HAMIL: Dosis rendah (≤1g/hari) umumnya dianggap aman untuk morning sickness; "
+        "dosis tinggi perlu dihindari. Sumber: British Journal of Anaesthesia 2014, BPOM RI."
+    ),
+
+    # ─── 27. KUNYIT ───────────────────────────────────────────────────────────
+    (
+        "KUNYIT (Curcuma longa) — MANFAAT, KETERBATASAN, DAN INTERAKSI: Kunyit berbeda dengan "
+        "temulawak (Curcuma xanthorrhiza) meskipun satu genus. Senyawa aktif utama: kurkumin. "
+        "MASALAH BIOAVAILABILITAS: Kurkumin murni memiliki bioavailabilitas oral sangat rendah (<1%). "
+        "Produk komersial sering dikombinasikan dengan piperin untuk meningkatkan penyerapan hingga "
+        "2000%. INTERAKSI OBAT: (1) Obat diabetes: kurkumin dapat menurunkan kadar gula darah; risiko "
+        "hipoglikemia jika dikombinasikan dengan metformin atau insulin. (2) Antikoagulan: efek "
+        "antiplatelet ringan; tidak direkomendasikan bersamaan dengan warfarin tanpa pemantauan. "
+        "(3) Amlodipin dan obat CYP3A4: kurkumin dosis tinggi dapat menghambat enzim ini. "
+        "KEAMANAN IBU HAMIL: Kunyit sebagai bumbu masakan aman; suplemen kurkumin dosis tinggi tidak "
+        "direkomendasikan saat hamil. Sumber: Journal of Nutritional Biochemistry, BPOM RI."
+    ),
+
+    # ─── 28. KAYU MANIS ───────────────────────────────────────────────────────
+    (
+        "KAYU MANIS (Cinnamomum) — DIABETES, KOLESTEROL, DAN RISIKO TOKSISITAS: Kayu manis cassia "
+        "(Cinnamomum cassia) dan ceylon (Cinnamomum verum) adalah dua jenis dengan profil keamanan "
+        "berbeda. MANFAAT: Meta-analisis di Diabetes Care (2013) menunjukkan kayu manis cassia dapat "
+        "menurunkan gula darah puasa rata-rata 24.59 mg/dL dan LDL kolesterol pada pasien diabetes "
+        "tipe 2. RISIKO TOKSISITAS HATI: Kayu manis cassia mengandung coumarin kadar tinggi yang dapat "
+        "menyebabkan kerusakan hati pada individu sensitif. European Food Safety Authority (EFSA) "
+        "menetapkan batas toleransi harian 0.1 mg coumarin/kg berat badan. Pasien gangguan hati harus "
+        "menghindari suplemen kayu manis cassia dosis tinggi. INTERAKSI: Kombinasi dengan obat diabetes "
+        "dapat menyebabkan hipoglikemia. Sumber: Diabetes Care 2013, EFSA Scientific Opinion, BPOM RI."
+    ),
+
+    # ─── 29. INSULIN ──────────────────────────────────────────────────────────
+    (
+        "INSULIN DAN HERBAL — RISIKO HIPOGLIKEMIA: Pasien diabetes yang menggunakan insulin berada "
+        "pada risiko tinggi hipoglikemia jika mengonsumsi herbal penurun gula darah secara bersamaan. "
+        "Herbal yang terbukti atau diduga memiliki efek hipoglikemik: (1) Pare (Momordica charantia) — "
+        "mengandung polipeptida-P mirip insulin. (2) Kayu manis — lihat bukti di atas. (3) Kunyit/"
+        "kurkumin — efek insulin-sensitizing. (4) Lidah buaya — beberapa studi kecil menunjukkan efek "
+        "hipoglikemik. (5) Biji klabet (fenugreek) — merangsang sekresi insulin. "
+        "DAMPAK KLINIS: Hipoglikemia berat (gula darah <70 mg/dL) dapat membahayakan jiwa. Gejala: "
+        "tremor, keringat dingin, penurunan kesadaran. REKOMENDASI: Pasien pengguna insulin WAJIB "
+        "berkonsultasi dengan dokter sebelum mengonsumsi herbal apapun. "
+        "Sumber: Diabetes Care, American Diabetes Association Guidelines, Jurnal Endokrinologi Indonesia."
+    ),
+
+    # ─── 30. AMLODIPIN ────────────────────────────────────────────────────────
+    (
+        "AMLODIPIN (CALCIUM CHANNEL BLOCKER) DAN HERBAL — INTERAKSI CYP3A4: Amlodipin adalah obat "
+        "antihipertensi yang dimetabolisme secara ekstensif oleh enzim CYP3A4 di hati. "
+        "HERBAL YANG MENINGKATKAN KADAR AMLODIPIN (inhibitor CYP3A4): (1) Grapefruit/jeruk bali — "
+        "inhibitor CYP3A4 kuat; dapat meningkatkan kadar amlodipin dalam darah hingga 2x lipat, "
+        "meningkatkan risiko hipotensi dan edema kaki. (2) Kurkumin dosis tinggi — inhibisi CYP3A4 "
+        "sedang. HERBAL YANG MENURUNKAN KADAR AMLODIPIN (inducer CYP3A4): St. John's Wort dapat "
+        "menurunkan efektivitas amlodipin. HERBAL DENGAN EFEK ADITIF: Bawang putih, seledri, dan "
+        "herbal antihipertensi lain dapat memberikan efek penurunan tekanan darah tambahan — risiko "
+        "hipotensi. REKOMENDASI: Pasien pengguna amlodipin harus menghindari jeruk bali dan melaporkan "
+        "semua suplemen herbal kepada dokter. Sumber: British Journal of Clinical Pharmacology."
+    ),
+
+    # ─── 31. SIMVASTATIN ──────────────────────────────────────────────────────
+    (
+        "SIMVASTATIN DAN HERBAL — RISIKO MIOPATI DAN RHABDOMYOLISIS: Simvastatin dimetabolisme oleh "
+        "CYP3A4. RISIKO TERTINGGI — RED YEAST RICE (Angkak): Mengandung monacolin K yang identik "
+        "secara kimia dengan lovastatin. Mengonsumsinya bersamaan simvastatin adalah double statin "
+        "dosing — risiko miopati (nyeri otot parah) dan rhabdomyolysis (kerusakan otot masif yang "
+        "dapat menyebabkan gagal ginjal akut). INTERAKSI CYP3A4: Herbal yang menghambat CYP3A4 "
+        "(termasuk kurkumin dosis tinggi) dapat meningkatkan kadar simvastatin dan risiko toksisitas. "
+        "TANDA BAHAYA: Nyeri atau kelemahan otot yang tidak biasa saat mengonsumsi statin harus segera "
+        "dilaporkan ke dokter. REKOMENDASI: Pasien statin WAJIB menghindari red yeast rice dan "
+        "melaporkan semua suplemen ke dokter atau apoteker. "
+        "Sumber: Journal of Clinical Lipidology, FDA Drug Safety Communication."
+    ),
+
+    # ─── 32. ANTIDEPRESAN ─────────────────────────────────────────────────────
+    (
+        "ANTIDEPRESAN DAN HERBAL — RISIKO SINDROM SEROTONIN DAN INTERAKSI SERIUS: Pasien yang "
+        "mengonsumsi antidepresan (SSRI seperti fluoxetin, sertralin; SNRI seperti venlafaxine; atau "
+        "MAO inhibitor) berisiko mengalami interaksi berbahaya dengan herbal tertentu. "
+        "ST. JOHN'S WORT (Hypericum perforatum) — KONTRAINDIKASI MUTLAK dengan SSRI/SNRI: Dapat "
+        "menyebabkan sindrom serotonin (kelebihan serotonin) yang mengancam jiwa — gejala: agitasi, "
+        "tremor, diare, demam, kejang, penurunan kesadaran. Selain itu menginduksi CYP3A4, menurunkan "
+        "efektivitas banyak obat. HERBAL LAIN: (1) Ginseng — dapat mempengaruhi kadar neurotransmiter. "
+        "(2) Kava — risiko hepatotoksisitas dan sedasi berlebih. REKOMENDASI: Pasien pengguna "
+        "antidepresan WAJIB melaporkan semua suplemen kepada psikiater. Jangan menghentikan antidepresan "
+        "dan menggantinya dengan herbal tanpa supervisi medis. Sumber: Clinical Pharmacology, FDA, WHO."
+    ),
+
+    # ─── 33. OBAT TIROID ──────────────────────────────────────────────────────
+    (
+        "OBAT TIROID (LEVOTHYROXINE) DAN HERBAL — GANGGUAN PENYERAPAN: Levothyroxine (T4 sintetis) "
+        "memiliki jendela terapeutik sempit — perubahan kecil dalam penyerapan dapat memengaruhi "
+        "kontrol tiroid secara signifikan. HERBAL YANG MENGGANGGU PENYERAPAN: (1) Produk kedelai "
+        "(susu kedelai, isoflavon): mengurangi penyerapan levothyroxine secara signifikan; harus "
+        "dikonsumsi dengan jeda minimal 4 jam. (2) Spirulina dan suplemen alga (chlorella, kelp): "
+        "mengandung iodine yang dapat memengaruhi fungsi tiroid. HERBAL YANG MEMPENGARUHI FUNGSI "
+        "TIROID LANGSUNG: Kelp dan produk iodine tinggi dapat menyebabkan hipertiroidisme atau "
+        "hipotiroidisme pada individu rentan. REKOMENDASI: Levothyroxine diminum 30-60 menit sebelum "
+        "makan, jauh dari suplemen apapun. Pemeriksaan TSH rutin diperlukan. "
+        "Sumber: Thyroid Journal, American Thyroid Association Guidelines."
+    ),
+
+    # ─── 34. ASPIRIN DOSIS RENDAH ─────────────────────────────────────────────
+    (
+        "ASPIRIN DOSIS RENDAH DAN HERBAL — RISIKO PERDARAHAN GANDA: Aspirin dosis rendah (80-160 "
+        "mg/hari) digunakan sebagai antiplatelet untuk mencegah serangan jantung dan stroke. "
+        "HERBAL DENGAN EFEK ANTIPLATELET YANG MEMPERKUAT ASPIRIN: (1) Bawang putih dosis tinggi — "
+        "mengandung ajoene dan allicin yang menghambat agregasi trombosit. (2) Jahe dosis tinggi — "
+        "efek antiplatelet ringan via inhibisi COX. (3) Ginkgo biloba — inhibisi faktor pengaktivasi "
+        "trombosit (PAF). (4) Kunyit/kurkumin dosis tinggi — efek antiplatelet. Kombinasi aspirin "
+        "dengan herbal antiplatelet meningkatkan risiko perdarahan, terutama perdarahan lambung dan "
+        "perdarahan otak. PERHATIAN KHUSUS: Pasien yang akan menjalani operasi harus menghentikan "
+        "semua suplemen herbal antiplatelet minimal 7-10 hari sebelumnya. "
+        "Sumber: Thrombosis Journal, European Heart Journal."
+    ),
+
+    # ─── 35. OBESITAS ─────────────────────────────────────────────────────────
+    (
+        "OBESITAS DAN HERBAL PELANGSING — BUKTI DAN RISIKO: Obesitas (IMT >30 kg/m²) memerlukan "
+        "pendekatan komprehensif. Banyak produk herbal diklaim sebagai pelangsing tanpa bukti klinis "
+        "kuat. HERBAL YANG DITELITI: (1) Garcinia cambogia (HCA) — meta-analisis menunjukkan penurunan "
+        "berat badan kecil (1-2 kg) dibanding plasebo; laporan kasus hepatotoksisitas telah dikaitkan. "
+        "(2) Green tea extract (EGCG) — penurunan berat badan rata-rata 0.2-3.5 kg; bukti lemah. "
+        "RISIKO SERIUS: Banyak jamu pelangsing tidak standar mengandung bahan kimia obat (BKO) "
+        "berbahaya seperti sibutramin atau fenfluramin yang sudah ditarik dari pasar. BPOM RI secara "
+        "rutin merilis daftar produk jamu pelangsing mengandung BKO yang dilarang. Pasien obesitas "
+        "WAJIB menghindari produk tidak berlabel BPOM. Pendekatan medis (diet terstruktur, olahraga) "
+        "jauh lebih aman dan terbukti. Sumber: Cochrane Database, BPOM RI Warning Letters."
     ),
 ]
 
