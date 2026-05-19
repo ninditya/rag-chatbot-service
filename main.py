@@ -23,7 +23,7 @@ if not api_key:
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8501")
 allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
-app = FastAPI(title="HealthTruth RAG API")
+app = FastAPI(title="HerbalCheck RAG API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,9 +33,12 @@ app.add_middleware(
 )
 
 qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+qdrant_api_key = os.getenv("QDRANT_API_KEY", "")
 
-embedding_service = EmbeddingService(api_key)
-document_store = DocumentStore(embedding_service, qdrant_url=qdrant_url)
+embedding_api_key = os.getenv("EMBEDDING_API_KEY", api_key)
+embedding_service = EmbeddingService(embedding_api_key)
+document_store = DocumentStore(embedding_service, qdrant_url=qdrant_url, qdrant_api_key=qdrant_api_key)
 rag_workflow = RagWorkflow(document_store, api_key)
 
-app.include_router(HealthRouter(rag_workflow, document_store).router)
+add_api_key = os.getenv("ADD_API_KEY", "")
+app.include_router(HealthRouter(rag_workflow, document_store, add_api_key=add_api_key).router)

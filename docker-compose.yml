@@ -5,6 +5,12 @@ services:
       - "6333:6333"
     volumes:
       - qdrant_storage:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/6333' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   app:
     build: .
@@ -12,9 +18,12 @@ services:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-${GEMINI_API_KEY}}
       - QDRANT_URL=http://qdrant:6333
+      - ADD_API_KEY=${ADD_API_KEY:-}
     depends_on:
-      - qdrant
+      qdrant:
+        condition: service_healthy
 
 volumes:
   qdrant_storage:

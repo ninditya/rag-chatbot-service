@@ -1,6 +1,6 @@
-# HealthTruth RAG API
+# HealthTruth-AI
 
-API deteksi hoax kesehatan berbasis Retrieval-Augmented Generation (RAG), dibangun dengan FastAPI, LangGraph, Qdrant, dan Gemini 2.5 Flash.
+API pengecekan mitos obat tradisional vs medis berbasis Retrieval-Augmented Generation (RAG), dibangun dengan FastAPI, LangGraph, Qdrant, dan Gemini 2.5 Flash. Dilengkapi chatbot Streamlit dengan personalisasi profil kesehatan.
 
 ---
 
@@ -51,9 +51,9 @@ RagWorkflow (LangGraph)
 API response
 ```
 
-1. **Tambah dokumen** — `POST /add` menyimpan teks sebagai vektor di Qdrant.
+1. **Tambah dokumen** — `POST /add` menyimpan teks referensi ke Qdrant (artikel BPOM, IDI, WHO, Kemenkes, dll).
 2. **Tanya** — `POST /ask` mengambil dokumen relevan dan menghasilkan jawaban via Gemini dengan 3 mode: `ringkas`, `detail`, `sumber`.
-3. **Cek fakta** — `POST /fact-check` memverifikasi klaim dan mengembalikan verdict `HOAX / BENAR / TIDAK LENGKAP` dalam format JSON.
+3. **Cek fakta** — `POST /fact-check` memverifikasi klaim dan mengembalikan verdict `MITOS / FAKTA / PERLU BUKTI LEBIH LANJUT` dalam format JSON.
 4. **Status** — `GET /status` melaporkan backend storage dan kesiapan workflow.
 
 ---
@@ -66,31 +66,32 @@ API response
 - Docker (untuk Qdrant)
 - Gemini API key — dapatkan di [Google AI Studio](https://aistudio.google.com)
 
-### 1. Install dependencies
+### Opsi A — Local (development)
 
 ```bash
+# 1. Virtual environment & dependencies
 python -m venv env
 source env/bin/activate
 pip install -r requirements.txt
+
+# 2. Konfigurasi API key
+cp .env.example .env
+# Edit .env, isi: GEMINI_API_KEY=key_kamu
+
+# 3. Jalankan Qdrant saja via Docker
+docker compose up -d qdrant
+
+# 4. Jalankan server
+uvicorn main:app --reload
 ```
 
-### 2. Konfigurasi environment
+### Opsi B — Full Docker
 
 ```bash
 cp .env.example .env
-# Isi GEMINI_API_KEY di .env
-```
+# Edit .env, isi: GEMINI_API_KEY=key_kamu
 
-### 3. Jalankan Qdrant
-
-```bash
-docker compose up -d
-```
-
-### 4. Jalankan server
-
-```bash
-uvicorn main:app --reload
+docker compose up
 ```
 
 API tersedia di `http://localhost:8000`. Interactive docs di `http://localhost:8000/docs`.
@@ -100,11 +101,11 @@ API tersedia di `http://localhost:8000`. Interactive docs di `http://localhost:8
 ## API Endpoints
 
 ### `POST /add`
-Tambah dokumen ke knowledge base.
+Tambah dokumen referensi ke knowledge base (artikel BPOM, IDI, WHO, Kemenkes, dll).
 
 **Request:**
 ```json
-{ "text": "Vaksin COVID-19 aman dan telah melalui uji klinis WHO." }
+{ "text": "Menurut BPOM, jamu yang tidak terdaftar berisiko mengandung bahan kimia obat berbahaya." }
 ```
 
 **Response:**
@@ -117,46 +118,46 @@ Batas: maksimal 10.000 karakter per dokumen.
 ---
 
 ### `POST /ask`
-Ajukan pertanyaan kesehatan. Mode tersedia: `ringkas` (default), `detail`, `sumber`.
+Ajukan pertanyaan seputar obat tradisional vs medis. Mode: `ringkas` (default), `detail`, `sumber`.
 
 **Request:**
 ```json
-{ "question": "Apakah vaksin COVID-19 aman?", "mode": "detail" }
+{ "question": "Apakah kunyit bisa menggantikan obat anti-inflamasi?", "mode": "detail" }
 ```
 
 **Response:**
 ```json
 {
-  "question": "Apakah vaksin COVID-19 aman?",
+  "question": "Apakah kunyit bisa menggantikan obat anti-inflamasi?",
   "mode": "detail",
-  "answer": "Berdasarkan data WHO dan uji klinis...",
-  "context_used": ["Vaksin COVID-19 aman dan telah melalui uji klinis WHO."],
-  "latency_sec": 1.243
+  "answer": "Kunyit mengandung kurkumin yang memiliki sifat anti-inflamasi...",
+  "context_used": ["..."],
+  "latency_sec": 2.1
 }
 ```
 
 ---
 
 ### `POST /fact-check`
-Verifikasi klaim/pesan berantai apakah hoax atau tidak.
+Verifikasi klaim/mitos tentang obat tradisional.
 
 **Request:**
 ```json
-{ "claim": "Minum air panas bisa membunuh virus corona" }
+{ "claim": "Minum rebusan daun sirsak bisa menyembuhkan kanker" }
 ```
 
 **Response:**
 ```json
 {
-  "claim": "Minum air panas bisa membunuh virus corona",
+  "claim": "Minum rebusan daun sirsak bisa menyembuhkan kanker",
   "result": {
-    "status": "HOAX",
-    "summary": "Klaim ini tidak didukung bukti ilmiah.",
-    "explanation": "Berdasarkan WHO, suhu air minum tidak cukup tinggi untuk membunuh virus di dalam tubuh.",
-    "sources": ["WHO", "Kemenkes"]
+    "status": "MITOS",
+    "summary": "Belum ada bukti ilmiah yang memadai bahwa daun sirsak menyembuhkan kanker.",
+    "explanation": "Berdasarkan BPOM dan IDI, klaim ini tidak didukung uji klinis yang valid...",
+    "sources": ["BPOM", "IDI"]
   },
   "context_used": ["..."],
-  "latency_sec": 1.876
+  "latency_sec": 3.1
 }
 ```
 
@@ -176,9 +177,47 @@ Cek status service.
 
 ---
 
+## Deploy ke Production
+
+### Opsi A — VPS (paling simpel, Docker Compose langsung)
+
+```bash
+# Di server (Ubuntu/Debian)
+git clone <repo>
+cd <repo>
+cp .env.example .env
+# Edit .env: isi GEMINI_API_KEY
+
+docker compose up -d
+```
+
+Buka port 8000 (API) dan 8501 (Streamlit) di firewall VPS.
+
+### Opsi B — Railway / Render
+
+1. Push repo ke GitHub
+2. Buat dua service terpisah:
+   - **App**: Docker build dari repo ini, env `GEMINI_API_KEY`
+   - **Qdrant**: gunakan [Qdrant Cloud](https://cloud.qdrant.io) (free tier tersedia), set `QDRANT_URL` ke URL cloud
+3. Set `ALLOWED_ORIGINS` ke domain frontend yang diizinkan
+
+### Variabel environment produksi
+
+| Variabel | Wajib | Keterangan |
+|----------|-------|------------|
+| `GEMINI_API_KEY` | ✓ | Google AI Studio |
+| `EMBEDDING_API_KEY` | — | Pisah dari generation key untuk isolasi kuota |
+| `QDRANT_URL` | — | Default `http://localhost:6333` |
+| `ADD_API_KEY` | — | Proteksi endpoint `/add` dari akses sembarang |
+| `ALLOWED_ORIGINS` | — | CORS whitelist, default localhost |
+
+---
+
 ## Notes
 
-- **Qdrant fallback** — jika Qdrant tidak tersedia saat startup, service otomatis fallback ke in-memory search berbasis word overlap. Data tidak persisten saat restart.
-- **LangGraph graph** — workflow adalah two-node graph (`retrieve → answer`). Node tambahan (reranking, query rewriting) dapat ditambahkan di `RagWorkflow._build_graph()` tanpa menyentuh bagian lain.
-- **CORS** — origins yang diizinkan dikonfigurasi via `ALLOWED_ORIGINS` di `.env`. Default: `localhost:3000` dan `localhost:8501`.
-- **Input limit** — pertanyaan dan klaim dibatasi 2.000 karakter; dokumen dibatasi 10.000 karakter.
+- **Knowledge base** — isi dengan dokumen dari BPOM, IDI, WHO, Kemenkes, atau jurnal ilmiah terpercaya via `POST /add`. Gunakan `seed_knowledge_base.py` untuk batch insert awal.
+- **Qdrant fallback** — jika Qdrant tidak tersedia, otomatis fallback ke in-memory. Data tidak persisten saat restart.
+- **LLM fallback** — jika Gemini 503/quota habis, jawaban diambil langsung dari knowledge base tanpa LLM.
+- **LangGraph graph** — two-node graph (`retrieve → answer`). Node tambahan bisa ditambahkan di `RagWorkflow._build_graph()`.
+- **CORS** — dikonfigurasi via `ALLOWED_ORIGINS` di `.env`.
+- **Input limit** — pertanyaan/klaim maks 2.000 karakter; dokumen maks 10.000 karakter.

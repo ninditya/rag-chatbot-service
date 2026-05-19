@@ -71,7 +71,28 @@ class RagWorkflow:
 
         except Exception as e:
             logger.error("Gemini API error pada mode '%s': %s", mode, e, exc_info=True)
-            raise RuntimeError("Gagal menghubungi model AI. Coba lagi nanti.") from e
+            err_str = str(e).upper()
+            status = getattr(e, "status_code", 0) or getattr(e, "code", 0)
+            is_transient = (
+                status in (429, 503)
+                or "RESOURCE_EXHAUSTED" in err_str
+                or "QUOTA_EXHAUSTED" in err_str
+                or "UNAVAILABLE" in err_str
+            )
+            if is_transient:
+                logger.warning("Kuota Gemini habis — fallback ke raw retrieval")
+                state["llm_fallback"] = True
+                if mode == "fact_check":
+                    state["answer"] = {
+                        "status": "PERLU BUKTI LEBIH LANJUT",
+                        "summary": "Model AI tidak tersedia (kuota habis). Berikut kutipan langsung dari knowledge base.",
+                        "explanation": "\n\n---\n\n".join(context),
+                        "sources": [],
+                    }
+                else:
+                    state["answer"] = "\n\n---\n\n".join(context)
+                return state
+            raise RuntimeError("QUOTA_EXHAUSTED") from e
 
         return state
 
