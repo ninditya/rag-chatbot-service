@@ -1,17 +1,18 @@
-# RAG Chatbot Service
+# HealthTruth RAG API
 
-A lightweight Retrieval-Augmented Generation (RAG) chatbot API built with FastAPI, LangGraph, and Qdrant. The service allows you to add documents to a knowledge base and query them through a natural-language question endpoint.
+API deteksi hoax kesehatan berbasis Retrieval-Augmented Generation (RAG), dibangun dengan FastAPI, LangGraph, Qdrant, dan Gemini 2.5 Flash.
 
 ---
 
 ## Tech Stack
 
-| Layer | Library |
+| Layer | Library / Service |
 |---|---|
 | API Framework | FastAPI + Uvicorn |
 | Workflow Orchestration | LangGraph |
-| Vector Store | Qdrant (falls back to in-memory if unavailable) |
-| Embedding | Deterministic hash-based embedding (128-dim) |
+| Vector Store | Qdrant via Docker (fallback ke in-memory) |
+| Embedding | Gemini Embedding (`gemini-embedding-001`, 3072-dim) |
+| LLM | Gemini 2.5 Flash |
 
 ---
 
@@ -19,39 +20,41 @@ A lightweight Retrieval-Augmented Generation (RAG) chatbot API built with FastAP
 
 ```
 .
-├── main.py             # App entry point — wires dependencies together
-├── EmbeddingService.py # Converts text to fixed-size vectors
-├── DocumentStore.py    # Manages document storage in Qdrant or in-memory
-├── RagWorkflow.py      # LangGraph pipeline: retrieve → answer
-└── Routes.py           # FastAPI router with /add, /ask, /status endpoints
+├── main.py              # Entry point — wiring dependencies + CORS + logging
+├── EmbeddingService.py  # Konversi teks ke vektor via Gemini embedding
+├── DocumentStore.py     # Penyimpanan dokumen di Qdrant atau in-memory
+├── RagWorkflow.py       # LangGraph pipeline: retrieve → answer
+├── Routes.py            # FastAPI router: /add, /ask, /fact-check, /status
+├── prompts.py           # Prompt templates untuk LLM (fact-check + 3 mode)
+├── docker-compose.yml   # Qdrant service
+└── .env.example         # Template environment variables
 ```
-
-Each file maps to a single responsibility, making the codebase easy to extend or test in isolation.
 
 ---
 
 ## How It Works
 
-1. **Add documents** — `POST /add` stores a piece of text as a vector in Qdrant (or in-memory fallback).
-2. **Ask a question** — `POST /ask` embeds the question, retrieves the most relevant documents, and returns an answer synthesized from the top result.
-3. **Check status** — `GET /status` reports the storage backend in use and the workflow readiness.
-
 ```
-User question
-     │
-     ▼
-EmbeddingService.embed()
-     │
-     ▼
-DocumentStore.search()  ←── Qdrant / in-memory
-     │
-     ▼
+Input pengguna
+      │
+      ▼
+EmbeddingService.embed()   ← Gemini embedding-001
+      │
+      ▼
+DocumentStore.search()     ← Qdrant (cosine similarity) / in-memory fallback
+      │
+      ▼
 RagWorkflow (LangGraph)
-  retrieve → answer
-     │
-     ▼
+  retrieve → answer        ← Gemini 2.5 Flash
+      │
+      ▼
 API response
 ```
+
+1. **Tambah dokumen** — `POST /add` menyimpan teks sebagai vektor di Qdrant.
+2. **Tanya** — `POST /ask` mengambil dokumen relevan dan menghasilkan jawaban via Gemini dengan 3 mode: `ringkas`, `detail`, `sumber`.
+3. **Cek fakta** — `POST /fact-check` memverifikasi klaim dan mengembalikan verdict `HOAX / BENAR / TIDAK LENGKAP` dalam format JSON.
+4. **Status** — `GET /status` melaporkan backend storage dan kesiapan workflow.
 
 ---
 
@@ -60,34 +63,48 @@ API response
 ### Prerequisites
 
 - Python 3.11+
-- (Optional) Qdrant running locally on port 6333
+- Docker (untuk Qdrant)
+- Gemini API key — dapatkan di [Google AI Studio](https://aistudio.google.com)
 
-### Install dependencies
+### 1. Install dependencies
 
 ```bash
 python -m venv env
 source env/bin/activate
-pip install fastapi uvicorn langgraph qdrant-client
+pip install -r requirements.txt
 ```
 
-### Run the server
+### 2. Konfigurasi environment
+
+```bash
+cp .env.example .env
+# Isi GEMINI_API_KEY di .env
+```
+
+### 3. Jalankan Qdrant
+
+```bash
+docker compose up -d
+```
+
+### 4. Jalankan server
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`. Interactive docs are at `http://localhost:8000/docs`.
+API tersedia di `http://localhost:8000`. Interactive docs di `http://localhost:8000/docs`.
 
 ---
 
 ## API Endpoints
 
 ### `POST /add`
-Add a document to the knowledge base.
+Tambah dokumen ke knowledge base.
 
-**Request body:**
+**Request:**
 ```json
-{ "text": "LangGraph is a framework for building stateful LLM workflows." }
+{ "text": "Vaksin COVID-19 aman dan telah melalui uji klinis WHO." }
 ```
 
 **Response:**
@@ -95,30 +112,58 @@ Add a document to the knowledge base.
 { "id": 0, "status": "added" }
 ```
 
+Batas: maksimal 10.000 karakter per dokumen.
+
 ---
 
 ### `POST /ask`
-Ask a question against the stored documents.
+Ajukan pertanyaan kesehatan. Mode tersedia: `ringkas` (default), `detail`, `sumber`.
 
-**Request body:**
+**Request:**
 ```json
-{ "question": "What is LangGraph?" }
+{ "question": "Apakah vaksin COVID-19 aman?", "mode": "detail" }
 ```
 
 **Response:**
 ```json
 {
-  "question": "What is LangGraph?",
-  "answer": "I found this: 'LangGraph is a framework for building stateful LLM workflows....'",
-  "context_used": ["LangGraph is a framework for building stateful LLM workflows."],
-  "latency_sec": 0.012
+  "question": "Apakah vaksin COVID-19 aman?",
+  "mode": "detail",
+  "answer": "Berdasarkan data WHO dan uji klinis...",
+  "context_used": ["Vaksin COVID-19 aman dan telah melalui uji klinis WHO."],
+  "latency_sec": 1.243
+}
+```
+
+---
+
+### `POST /fact-check`
+Verifikasi klaim/pesan berantai apakah hoax atau tidak.
+
+**Request:**
+```json
+{ "claim": "Minum air panas bisa membunuh virus corona" }
+```
+
+**Response:**
+```json
+{
+  "claim": "Minum air panas bisa membunuh virus corona",
+  "result": {
+    "status": "HOAX",
+    "summary": "Klaim ini tidak didukung bukti ilmiah.",
+    "explanation": "Berdasarkan WHO, suhu air minum tidak cukup tinggi untuk membunuh virus di dalam tubuh.",
+    "sources": ["WHO", "Kemenkes"]
+  },
+  "context_used": ["..."],
+  "latency_sec": 1.876
 }
 ```
 
 ---
 
 ### `GET /status`
-Check the current state of the service.
+Cek status service.
 
 **Response:**
 ```json
@@ -133,6 +178,7 @@ Check the current state of the service.
 
 ## Notes
 
-- **Qdrant fallback** — if Qdrant is not reachable on startup, the service automatically falls back to an in-memory list with basic keyword search. Data in fallback mode does not persist across restarts.
-- **Embedding** — the current `EmbeddingService` uses a deterministic hash-based approach (no external model required). It can be swapped for a real embedding model (e.g. OpenAI, sentence-transformers) by implementing the same `embed(text)` interface.
-- **LangGraph graph** — the workflow is a two-node graph (`retrieve → answer`). Additional nodes (e.g. reranking, query rewriting) can be added to the graph in `RagWorkflow._build_graph()` without touching the rest of the codebase.
+- **Qdrant fallback** — jika Qdrant tidak tersedia saat startup, service otomatis fallback ke in-memory search berbasis word overlap. Data tidak persisten saat restart.
+- **LangGraph graph** — workflow adalah two-node graph (`retrieve → answer`). Node tambahan (reranking, query rewriting) dapat ditambahkan di `RagWorkflow._build_graph()` tanpa menyentuh bagian lain.
+- **CORS** — origins yang diizinkan dikonfigurasi via `ALLOWED_ORIGINS` di `.env`. Default: `localhost:3000` dan `localhost:8501`.
+- **Input limit** — pertanyaan dan klaim dibatasi 2.000 karakter; dokumen dibatasi 10.000 karakter.

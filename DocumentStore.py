@@ -1,6 +1,10 @@
+import logging
 from typing import List
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, VectorParams, Distance
+
+logger = logging.getLogger(__name__)
+
 
 class DocumentStore:
     COLLECTION_NAME = "demo_collection"
@@ -16,7 +20,7 @@ class DocumentStore:
     def _init_qdrant(self, qdrant_url: str):
         # Preserve existing data on restart — use collection_exists instead of recreate.
         try:
-            self._client = QdrantClient(qdrant_url)
+            self._client = QdrantClient(qdrant_url, timeout=5)
             if not self._client.collection_exists(self.COLLECTION_NAME):
                 self._client.create_collection(
                     collection_name=self.COLLECTION_NAME,
@@ -27,9 +31,9 @@ class DocumentStore:
                 exact=True,
             ).count
             self._use_qdrant = True
-            print("Qdrant connected and ready.")
-        except Exception:
-            print("Qdrant not available. Falling back to in-memory list.")
+            logger.info("Qdrant connected and ready.")
+        except Exception as e:
+            logger.warning("Qdrant not available (%s). Falling back to in-memory list.", e)
             self._use_qdrant = False
 
     def add_document(self, text: str) -> int:
@@ -48,20 +52,35 @@ class DocumentStore:
         return doc_id
 
     def search(self, query: str, limit: int = 2) -> List[str]:
-        embedding = self.embedding_service.embed(query)
+        try:
+            embedding = self.embedding_service.embed(query)
+        except RuntimeError:
+            logger.error("Gagal membuat embedding untuk query '%s'", query[:50])
+            raise
 
         if self._use_qdrant:
-            hits = self._client.search(
+            hits = self._client.query_points(
                 collection_name=self.COLLECTION_NAME,
-                query_vector=embedding,
+                query=embedding,
                 limit=limit,
             )
-            return [hit.payload["text"] for hit in hits]
+            return [pt.payload["text"] for pt in hits.points]
 
-        results = [doc for doc in self._docs_memory if query.lower() in doc.lower()]
-        if not results and self._docs_memory:
-            return [self._docs_memory[0]]
-        return results
+        return self._search_memory(query, limit)
+
+    def _search_memory(self, query: str, limit: int) -> List[str]:
+        """Score in-memory docs by word overlap with query, return top-N."""
+        if not self._docs_memory:
+            return []
+
+        query_words = set(query.lower().split())
+
+        def score(doc: str) -> int:
+            return sum(1 for w in query_words if w in doc.lower())
+
+        ranked = sorted(self._docs_memory, key=score, reverse=True)
+        top = [doc for doc in ranked if score(doc) > 0]
+        return top[:limit]
 
     def get_status(self) -> dict:
         return {
