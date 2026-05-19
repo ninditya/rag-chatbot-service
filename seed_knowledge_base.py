@@ -45,10 +45,12 @@ Topik (35 entri):
  35.  Obesitas & herbal pelangsing — bukti & risiko
 """
 
+import os
 import sys
 import requests
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://rag-chatbot-service-production.up.railway.app"
+ADD_API_KEY = os.getenv("ADD_API_KEY", "")
 
 KNOWLEDGE_ENTRIES = [
     # ─── 1. TEMULAWAK & HEPATOPROTEKTIF ────────────────────────────────────────
@@ -582,12 +584,13 @@ KNOWLEDGE_ENTRIES = [
 ]
 
 
-def seed(base_url: str = BASE_URL):
+def seed(base_url: str = BASE_URL, api_key: str = ADD_API_KEY):
     print(f"Mengirim {len(KNOWLEDGE_ENTRIES)} entri ke {base_url}/add ...\n")
+    headers = {"X-Api-Key": api_key} if api_key else {}
     success, failed = 0, 0
     for i, text in enumerate(KNOWLEDGE_ENTRIES, 1):
         try:
-            resp = requests.post(f"{base_url}/add", json={"text": text}, timeout=30)
+            resp = requests.post(f"{base_url}/add", json={"text": text}, headers=headers, timeout=30)
             resp.raise_for_status()
             data = resp.json()
             print(f"[{i:02d}] OK  — doc_id={data.get('id')}  ({len(text)} chars)")

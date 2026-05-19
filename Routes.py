@@ -34,7 +34,7 @@ class HealthRouter:
         self.router.post("/ask")(self.ask)
         self.router.post("/fact-check")(self.fact_check)
         self.router.post("/add")(self.add)
-        self.router.get("/status")(self.status)
+        self.router.api_route("/status", methods=["GET", "HEAD"])(self.status)
         self.router.get("/metrics")(self.metrics)
 
     def _raise_for_runtime(self, e: Exception) -> None:
