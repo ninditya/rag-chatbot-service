@@ -28,6 +28,21 @@ class RagWorkflow:
         state["context"] = self.document_store.search(state["question"])
         return state
 
+    def _no_context_answer(self, state: dict) -> dict:
+        if state.get("mode") == "fact_check":
+            state["answer"] = {
+                "status": "PERLU BUKTI LEBIH LANJUT",
+                "summary": "Tidak ditemukan informasi yang relevan dalam knowledge base.",
+                "explanation": "",
+                "sources": [],
+            }
+        else:
+            state["answer"] = "Maaf, tidak ditemukan informasi yang relevan dalam knowledge base."
+        return state
+
+    def _route(self, state: dict) -> str:
+        return "answer" if state.get("context") else "no_context"
+
     def _answer(self, state: dict) -> dict:
         context = state.get("context", [])
         mode = state.get("mode", "ringkas")
@@ -35,10 +50,6 @@ class RagWorkflow:
         if mode not in self.VALID_MODES:
             logger.warning("Mode tidak valid '%s', fallback ke 'ringkas'", mode)
             mode = "ringkas"
-
-        if not context:
-            state["answer"] = "Maaf, tidak ditemukan informasi yang relevan dalam knowledge base."
-            return state
 
         context_text = "\n\n".join(context)
         question = self._sanitize(state["question"])
@@ -100,9 +111,14 @@ class RagWorkflow:
         workflow = StateGraph(dict)
         workflow.add_node("retrieve", self._retrieve)
         workflow.add_node("answer", self._answer)
+        workflow.add_node("no_context", self._no_context_answer)
         workflow.set_entry_point("retrieve")
-        workflow.add_edge("retrieve", "answer")
+        workflow.add_conditional_edges("retrieve", self._route, {
+            "answer": "answer",
+            "no_context": "no_context",
+        })
         workflow.add_edge("answer", END)
+        workflow.add_edge("no_context", END)
         return workflow.compile()
 
     def ask(self, question: str, mode: str = "ringkas") -> dict:

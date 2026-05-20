@@ -23,10 +23,13 @@ API pengecekan mitos obat tradisional vs medis berbasis Retrieval-Augmented Gene
 ├── main.py              # Entry point — wiring dependencies + CORS + logging
 ├── EmbeddingService.py  # Konversi teks ke vektor via Gemini embedding
 ├── DocumentStore.py     # Penyimpanan dokumen di Qdrant atau in-memory
-├── RagWorkflow.py       # LangGraph pipeline: retrieve → answer
-├── Routes.py            # FastAPI router: /add, /ask, /fact-check, /status
+├── RagWorkflow.py       # LangGraph pipeline: retrieve → answer | no_context
+├── Routes.py            # FastAPI router: /add, /ask, /fact-check, /status, /metrics
 ├── prompts.py           # Prompt templates untuk LLM (fact-check + 3 mode)
-├── docker-compose.yml   # Qdrant service
+├── chatbot.py           # Streamlit chatbot UI dengan personalisasi profil kesehatan
+├── Dockerfile           # Docker image untuk FastAPI backend
+├── Dockerfile.streamlit # Docker image untuk Streamlit frontend
+├── docker-compose.yml   # Qdrant + FastAPI service untuk development lokal
 └── .env.example         # Template environment variables
 ```
 
@@ -41,11 +44,15 @@ Input pengguna
 EmbeddingService.embed()   ← Gemini embedding-001
       │
       ▼
-DocumentStore.search()     ← Qdrant (cosine similarity) / in-memory fallback
+DocumentStore.search()     ← Qdrant (cosine similarity, score ≥ 0.4) / in-memory fallback
       │
       ▼
 RagWorkflow (LangGraph)
-  retrieve → answer        ← Gemini 2.5 Flash
+  retrieve
+      │
+      ├─ dokumen ditemukan ──→ answer      ← Gemini 2.5 Flash
+      │
+      └─ tidak ditemukan  ──→ no_context  ← pesan "tidak ditemukan info relevan"
       │
       ▼
 API response
@@ -110,7 +117,7 @@ Tambah dokumen referensi ke knowledge base (artikel BPOM, IDI, WHO, Kemenkes, dl
 
 **Response:**
 ```json
-{ "id": 0, "status": "added" }
+{ "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479", "status": "added" }
 ```
 
 Batas: maksimal 10.000 karakter per dokumen.
@@ -132,7 +139,8 @@ Ajukan pertanyaan seputar obat tradisional vs medis. Mode: `ringkas` (default), 
   "mode": "detail",
   "answer": "Kunyit mengandung kurkumin yang memiliki sifat anti-inflamasi...",
   "context_used": ["..."],
-  "latency_sec": 2.1
+  "latency_sec": 2.1,
+  "llm_fallback": false
 }
 ```
 
@@ -196,10 +204,11 @@ Buka port 8000 (API) dan 8501 (Streamlit) di firewall VPS.
 ### Opsi B — Railway / Render
 
 1. Push repo ke GitHub
-2. Buat dua service terpisah:
-   - **App**: Docker build dari repo ini, env `GEMINI_API_KEY`
-   - **Qdrant**: gunakan [Qdrant Cloud](https://cloud.qdrant.io) (free tier tersedia), set `QDRANT_URL` ke URL cloud
-3. Set `ALLOWED_ORIGINS` ke domain frontend yang diizinkan
+2. Buat tiga service terpisah di Railway:
+   - **FastAPI backend**: Docker build dengan `Dockerfile`, env `GEMINI_API_KEY` + `QDRANT_URL` + `ADD_API_KEY`
+   - **Streamlit frontend**: Docker build dengan `Dockerfile.streamlit`, env `API_URL` ke URL FastAPI
+   - **Qdrant**: gunakan [Qdrant Cloud](https://cloud.qdrant.io) (free tier tersedia), set `QDRANT_URL` + `QDRANT_API_KEY`
+3. Set `ALLOWED_ORIGINS` di FastAPI ke domain Streamlit yang diizinkan
 
 ### Variabel environment produksi
 
@@ -218,6 +227,6 @@ Buka port 8000 (API) dan 8501 (Streamlit) di firewall VPS.
 - **Knowledge base** — isi dengan dokumen dari BPOM, IDI, WHO, Kemenkes, atau jurnal ilmiah terpercaya via `POST /add`. Gunakan `seed_knowledge_base.py` untuk batch insert awal.
 - **Qdrant fallback** — jika Qdrant tidak tersedia, otomatis fallback ke in-memory. Data tidak persisten saat restart.
 - **LLM fallback** — jika Gemini 503/quota habis, jawaban diambil langsung dari knowledge base tanpa LLM.
-- **LangGraph graph** — two-node graph (`retrieve → answer`). Node tambahan bisa ditambahkan di `RagWorkflow._build_graph()`.
+- **LangGraph graph** — three-node graph dengan conditional routing: `retrieve → answer` (jika dokumen ditemukan) atau `retrieve → no_context` (jika tidak ada dokumen relevan). Node tambahan bisa ditambahkan di `RagWorkflow._build_graph()`.
 - **CORS** — dikonfigurasi via `ALLOWED_ORIGINS` di `.env`.
 - **Input limit** — pertanyaan/klaim maks 2.000 karakter; dokumen maks 10.000 karakter.
