@@ -57,14 +57,14 @@ class DocumentStore:
             raise
 
         if self._use_qdrant:
-            hits = self._client.query_points(
+            hits = self._client.search(
                 collection_name=self.COLLECTION_NAME,
-                query=embedding,
+                query_vector=embedding,
                 limit=limit,
                 score_threshold=score_threshold,
             )
             seen, results = set(), []
-            for pt in hits.points:
+            for pt in hits:
                 text = pt.payload["text"]
                 if text not in seen:
                     seen.add(text)
