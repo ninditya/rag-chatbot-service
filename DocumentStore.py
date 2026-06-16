@@ -1,6 +1,7 @@
 import logging
 import uuid
 from typing import List
+from urllib.parse import urlparse
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, VectorParams, Distance
 
@@ -19,8 +20,11 @@ class DocumentStore:
 
     def _init_qdrant(self, qdrant_url: str, qdrant_api_key: str = ""):
         try:
+            parsed = urlparse(qdrant_url)
+            port = parsed.port or (443 if parsed.scheme == "https" else 6333)
             self._client = QdrantClient(
                 qdrant_url,
+                port=port,
                 timeout=5,
                 api_key=qdrant_api_key or None,
             )
